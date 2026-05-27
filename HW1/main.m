@@ -1,0 +1,96 @@
+% points for x
+%clc;close all;
+a = 0;  b = 1;
+N = 9;
+%coeffOpt = 1;
+coeffOpt = 1;
+dx = 1/(N + 1);
+x = zeros(N+2,1);
+h = zeros(N+1,1);
+F = zeros(N,1);
+% define functions
+%p = 3; q = 2;
+UTRUE   = @(x) x.*(x-1).*(sin(5*x)+3*exp(x));
+UTRUEX  = @(x) x*(x-1)*(5*cos(5*x) + 3*exp(x)) ...
+    + (sin(5*x)+3*exp(x))*(2*x-1);
+UTRUEXX = @(x) x*(x-1)*(-25*sin(5*x) + 3*exp(x)) ...
+    + 2*(5*cos(5*x)+3*exp(x))*(2*x-1) + 2*(sin(5*x)+3*exp(x));
+if coeffOpt == 1
+    f   = @(x) -3*UTRUEXX(x) + 2*UTRUE(x);
+else
+    f   = @(x) -(1+x).*UTRUEXX(x) - UTRUEX(x);
+end
+% nonuniform mesh
+for i = 1 : N+1
+    if mod(i,2) == 0
+        h(i) = 1.1*dx;
+    else
+        h(i) = 0.9*dx;
+    end
+end
+x(1) = a;
+for j = 1 : N+1
+    x(j+1) = h(j) + x(j);
+end
+% Define  vector F
+for i = 1:N
+    F(i) = f(x(i+2))*h(i+1)/6 + f(x(i+1))*(h(i)+h(i+1))/3 + f(x(i))*h(i)/6;
+end
+%% solve for cj
+A = formMatrix(x,h,N,coeffOpt);
+cj = A\F;
+L2norm = evalL2(x,h,cj,N)
+Linfnorm = evalLinf(x,h,cj,N)
+Energynorm = evalEnergy(x,h,cj,N)
+%error function
+%e_h = @(x) UhFunc(a,j,x,h,cj,N) - UTRUE(x);
+% sample points per element
+Mq = 10;
+xq_vec = [];
+eh_vec = [];
+uh_vec = [];
+u_vec =  [];
+% xq_total = length(x) + Mq*(length(x)-1);
+% xq_vec = zeros(xq_total,1);
+% Uh_vec = zeros(xq_total,1);
+for j = 1: N+1
+    for m = 1:Mq
+        idxq = x(j) + h(j)*m/Mq;
+        u_h = UhFunc(idxq,j,x,h,cj,N);
+        u = UTRUE(idxq);
+        e_h = (u_h - u);
+        %eNorm = eNorm + e_h;
+        xq_vec = [xq_vec;idxq];
+        eh_vec = [eh_vec;e_h];
+        uh_vec = [uh_vec;u_h];
+        u_vec  = [u_vec;u];
+    end
+end
+figure(1)
+plot(xq_vec, eh_vec,'b-*','LineWidth', 1.5);
+grid on;
+figure(2)
+plot(xq_vec, uh_vec,'b-*','LineWidth', 1.5);
+hold on
+plot(xq_vec, u_vec,'r--','LineWidth', 1.5);
+hold off;
+grid on;
+% make plots
+% subInt = linspace(x(1),x(2),8);
+% nl  = length(subInt);
+% U_h = zeros(nl,1);
+% for i = 1:nl
+%     j= 1;
+%     U_h(i) = phiFunc(subInt(i),j,x,h);
+%     %U_h(i) = UhFunc(subInt(i),j,x,h,cj);
+% end
+% I = 2:N+1;
+% u = UTRUE(x(I));
+% figure(2)
+% plot(x(I), cj,'g-*','LineWidth', 1.5);
+% hold on
+% plot(x(I), u,'r--','LineWidth', 1.5);
+% hold off
+% 
+% figure(3)
+% plot(x(I), abs(cj-u),'g-*','LineWidth', 1.5);
